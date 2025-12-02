@@ -20,3 +20,49 @@ spec:
                 name: grafana
                 port:
                   number: 3000 # Port standard de Grafana
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: lab-ingress
+  annotations:
+    cert-manager.io/cluster-issuer: selfsigned-issuer
+spec:
+  tls:
+    - hosts:
+        - jellyfin.lab
+      secretName: jellyfin-tls
+  rules:
+    - host: jellyfin.lab
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: jellyfin
+                port:
+                  number: 8096 # Port standard de Jellyfin
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: argocd-ingress
+  annotations:
+    cert-manager.io/cluster-issuer: selfsigned-issuer
+spec:
+  tls:
+    - hosts:
+        - argocd.lab
+      secretName: argocd-tls
+  rules:
+    - host: argocd.lab
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: argocd-server
+                port:
+                  number: 80 # Port standard pour le service ArgoCD Ingress
