@@ -1,0 +1,42 @@
+---
+- name: Déployer MinIO
+  hosts: k8s_cluster
+  become: true
+  tasks:
+    - name: Ajouter le dépôt Helm de MinIO
+      kubernetes.core.helm_repository:
+        name: minio
+        repo_url: https://charts.min.io/
+        state: present
+
+    - name: Créer l'espace de noms minio-system
+      kubernetes.core.k8s:
+        api_version: v1
+        kind: Namespace
+        name: minio-system
+        state: present
+
+    - name: Déployer MinIO via Helm
+      kubernetes.core.helm:
+        name: minio
+        chart_ref: minio/minio
+        release_namespace: minio-system
+        create_namespace: false
+        state: present
+        values:
+          mode: standalone
+          replicas: 1
+          persistence:
+            enabled: true
+            storageClass: longhorn
+            size: 10Gi
+          resources:
+            requests:
+              memory: 512Mi
+              cpu: 500m
+          rootUser: admin
+          rootPassword: SuperSecretMinioKey
+          service:
+            type: ClusterIP
+          consoleService:
+            type: ClusterIP
