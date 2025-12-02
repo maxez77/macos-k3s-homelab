@@ -66,3 +66,57 @@ spec:
                 name: argocd-server
                 port:
                   number: 80 # Port standard pour le service ArgoCD Ingress
+---
+# Ingress pour l'API S3 de MinIO
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: minio-s3-ingress
+  namespace: minio-system
+  annotations:
+    cert-manager.io/cluster-issuer: selfsigned-issuer
+    traefik.ingress.kubernetes.io/router.entrypoints: websecure
+    traefik.ingress.kubernetes.io/router.tls: "true"
+spec:
+  tls:
+    - hosts:
+        - s3.lab
+      secretName: minio-s3-tls
+  rules:
+    - host: s3.lab
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: minio
+                port:
+                  number: 9000 # Port de l'API S3 de MinIO
+---
+# Ingress pour la Console de MinIO
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: minio-console-ingress
+  namespace: minio-system
+  annotations:
+    cert-manager.io/cluster-issuer: selfsigned-issuer
+    traefik.ingress.kubernetes.io/router.entrypoints: websecure
+    traefik.ingress.kubernetes.io/router.tls: "true"
+spec:
+  tls:
+    - hosts:
+        - minio.lab
+      secretName: minio-console-tls
+  rules:
+    - host: minio.lab
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: minio-console
+                port:
+                  number: 9001 # Port de la Console de MinIO
