@@ -1,28 +1,27 @@
 ---
-- name: Déployer MinIO
-  hosts: k8s_cluster
-  become: true
+- name: Déployer MinIO (S3 Local)
+  hosts: master
+  become: yes
+  environment:
+    KUBECONFIG: /etc/rancher/k3s/k3s.yaml
   tasks:
-    - name: Ajouter le dépôt Helm de MinIO
+    - name: 1. Ajouter le dépôt Helm MinIO
       kubernetes.core.helm_repository:
         name: minio
         repo_url: https://charts.min.io/
-        state: present
 
-    - name: Créer l'espace de noms minio-system
-      kubernetes.core.k8s:
-        api_version: v1
-        kind: Namespace
-        name: minio-system
-        state: present
+    # CORRECTION ICI : On utilise la commande brute au lieu du module Python
+    - name: 2. Créer l'espace de noms minio-system
+      command: /usr/local/bin/k3s kubectl create namespace minio-system
+      ignore_errors: yes # Ignore l'erreur si le dossier existe déjà
 
-    - name: Déployer MinIO via Helm
+    - name: 3. Installer MinIO
       kubernetes.core.helm:
         name: minio
         chart_ref: minio/minio
         release_namespace: minio-system
-        create_namespace: false
-        state: present
+        create_namespace: false # On l'a déjà fait manuellement au-dessus
+        update_repo_cache: true
         values:
           mode: standalone
           replicas: 1

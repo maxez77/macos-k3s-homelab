@@ -9,13 +9,12 @@
       kubernetes.core.helm_repository:
         name: vmware-tanzu
         repo_url: https://vmware-tanzu.github.io/helm-charts
-        state: present
 
     - name: 2. Créer l'espace de noms velero
       command: /usr/local/bin/k3s kubectl create namespace velero
       ignore_errors: yes
 
-    - name: 3. Installer Velero via Helm
+    - name: 3. Installer Velero via Helm (Config S3 MinIO)
       kubernetes.core.helm:
         name: velero
         chart_ref: vmware-tanzu/velero
@@ -23,10 +22,7 @@
         create_namespace: false
         update_repo_cache: true
         values:
-          # Active l'agent sur les noeuds pour la sauvegarde des volumes persistants
-          deployNodeAgent: true
-
-          # Ajout du plugin AWS pour la compatibilité S3 (MinIO)
+          # On installe le plugin AWS (pour parler S3)
           initContainers:
             - name: velero-plugin-for-aws
               image: velero/velero-plugin-for-aws:v1.10.0
@@ -34,18 +30,23 @@
                 - mountPath: /target
                   name: plugins
 
-          # Configuration du fournisseur de stockage
+          # Configuration principale
           configuration:
-            provider: aws
             backupStorageLocation:
               - name: default
+                provider: aws # <--- C'était ça qui manquait ou était mal placé !
                 bucket: velero
                 config:
                   region: minio
                   s3ForcePathStyle: "true"
-                  s3Url: http://minio.minio-system:9000 # URL interne du service MinIO
+                  s3Url: http://minio.minio-system:9000
+            volumeSnapshotLocation:
+              - name: default
+                provider: aws
+                config:
+                  region: minio
 
-          # Configuration des identifiants pour MinIO via un secret
+          # Identifiants (Secrets)
           credentials:
             useSecret: true
             secretContents:
@@ -53,3 +54,6 @@
                 [default]
                 aws_access_key_id = velero
                 aws_secret_access_key = VeleroBackupKey123!
+
+          # IMPORTANT : Activer la sauvegarde des volumes (PVC)
+          deployNodeAgent: true
