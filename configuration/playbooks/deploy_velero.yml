@@ -1,0 +1,55 @@
+---
+- name: Déployer Velero pour les sauvegardes
+  hosts: master
+  become: yes
+  environment:
+    KUBECONFIG: /etc/rancher/k3s/k3s.yaml
+  tasks:
+    - name: 1. Ajouter le dépôt Helm de Velero
+      kubernetes.core.helm_repository:
+        name: vmware-tanzu
+        repo_url: https://vmware-tanzu.github.io/helm-charts
+        state: present
+
+    - name: 2. Créer l'espace de noms velero
+      command: /usr/local/bin/k3s kubectl create namespace velero
+      ignore_errors: yes
+
+    - name: 3. Installer Velero via Helm
+      kubernetes.core.helm:
+        name: velero
+        chart_ref: vmware-tanzu/velero
+        release_namespace: velero
+        create_namespace: false
+        update_repo_cache: true
+        values:
+          # Active l'agent sur les noeuds pour la sauvegarde des volumes persistants
+          deployNodeAgent: true
+
+          # Ajout du plugin AWS pour la compatibilité S3 (MinIO)
+          initContainers:
+            - name: velero-plugin-for-aws
+              image: velero/velero-plugin-for-aws:v1.10.0
+              volumeMounts:
+                - mountPath: /target
+                  name: plugins
+
+          # Configuration du fournisseur de stockage
+          configuration:
+            provider: aws
+            backupStorageLocation:
+              - name: default
+                bucket: velero
+                config:
+                  region: minio
+                  s3ForcePathStyle: "true"
+                  s3Url: http://minio.minio-system:9000 # URL interne du service MinIO
+
+          # Configuration des identifiants pour MinIO via un secret
+          credentials:
+            useSecret: true
+            secretContents:
+              cloud: |
+                [default]
+                aws_access_key_id = velero
+                aws_secret_access_key = VeleroBackupKey123!
