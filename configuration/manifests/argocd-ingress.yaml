@@ -1,0 +1,26 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: argocd-ingress
+  namespace: argocd
+  annotations:
+    kubernetes.io/ingress.class: "traefik"
+    # On garde le HTTPS pour l'extérieur (le cadenas)
+    traefik.ingress.kubernetes.io/router.tls: "true"
+    # ON RETIRE la ligne "serversscheme: https" car maintenant c'est du HTTP
+spec:
+  tls:
+    - hosts:
+        - argocd.lab
+      secretName: argocd-tls
+  rules:
+    - host: argocd.lab
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: argocd-server
+                port:
+                  number: 80 # On tape maintenant sur le port 80 (HTTP)

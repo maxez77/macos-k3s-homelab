@@ -1,0 +1,14 @@
+# Fichiers de la machine
+.DS_Store
+*.swp
+
+# Etat de Terraform (CRUCIAL : ne doit jamais aller sur Git)
+.terraform/
+terraform.tfstate
+terraform.tfstate.backup
+.terraform.lock.hcl
+
+# Fichiers sensibles (Même si cette clé n'est pas dans le dépôt, c'est une bonne pratique)
+id_homelab
+*.kube/config
+.aider*

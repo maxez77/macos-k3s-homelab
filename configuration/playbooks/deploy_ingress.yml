@@ -1,0 +1,13 @@
+---
+- name: Déploiement des règles Ingress (Routage)
+  hosts: master
+  become: yes
+  tasks:
+    - name: Copier le fichier Ingress sur le master
+      copy:
+        src: ../manifests/ingress.yaml
+        dest: /home/devops/k8s-manifests/ingress.yaml
+        owner: devops
+
+    - name: Appliquer la configuration Ingress
+      command: /usr/local/bin/k3s kubectl apply -f /home/devops/k8s-manifests/ingress.yaml

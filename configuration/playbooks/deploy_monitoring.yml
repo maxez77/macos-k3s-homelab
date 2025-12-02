@@ -1,0 +1,32 @@
+---
+- name: Déploiement de la Stack Monitoring (Prometheus & Grafana)
+  hosts: master
+  become: yes
+  environment:
+    KUBECONFIG: /etc/rancher/k3s/k3s.yaml
+  tasks:
+    - name: 1. Installer Helm sur le serveur Master
+      shell: curl https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
+      args:
+        creates: /usr/local/bin/helm
+
+    - name: 2. Ajouter le dépôt de charts Prometheus
+      kubernetes.core.helm_repository:
+        name: prometheus-community
+        repo_url: "https://prometheus-community.github.io/helm-charts"
+
+    - name: 3. Installer la stack complète (Patience !)
+      kubernetes.core.helm:
+        name: monitoring
+        chart_ref: prometheus-community/kube-prometheus-stack
+        release_namespace: monitoring
+        create_namespace: true
+        update_repo_cache: true
+        values:
+          grafana:
+            service:
+              type: NodePort
+              nodePort: 31000 # On force le port 31000 pour y accéder facilement
+          prometheus:
+            prometheusSpec:
+              serviceMonitorSelectorNilUsesHelmValues: false
