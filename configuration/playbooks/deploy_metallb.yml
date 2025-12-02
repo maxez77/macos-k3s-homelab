@@ -1,0 +1,40 @@
+---
+- name: Déployer MetalLB
+  hosts: localhost
+  connection: local
+  become: false
+  vars:
+    metallb_repo_url: "https://metallb.github.io/metallb"
+    metallb_chart_name: "metallb/metallb"
+    metallb_release_name: "metallb"
+    metallb_namespace: "metallb-system"
+    metallb_config_manifest: "{{ playbook_dir | dirname }}/manifests/metallb-config.yaml"
+
+  tasks:
+    - name: Ajouter le dépôt Helm MetalLB
+      kubernetes.core.helm_repository:
+        name: metallb
+        repo_url: "{{ metallb_repo_url }}"
+        state: present
+
+    - name: Créer le namespace MetalLB
+      kubernetes.core.k8s:
+        api_version: v1
+        kind: Namespace
+        name: "{{ metallb_namespace }}"
+        state: present
+
+    - name: Installer le chart Helm MetalLB
+      kubernetes.core.helm:
+        name: "{{ metallb_release_name }}"
+        chart: "{{ metallb_chart_name }}"
+        namespace: "{{ metallb_namespace }}"
+        create_namespace: false
+        state: present
+        wait: true
+
+    - name: Appliquer la configuration MetalLB (IPAddressPool et L2Advertisement)
+      kubernetes.core.k8s:
+        state: present
+        src: "{{ metallb_config_manifest }}"
+        wait: true
